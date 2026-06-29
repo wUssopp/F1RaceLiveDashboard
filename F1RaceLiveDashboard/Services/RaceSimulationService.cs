@@ -63,15 +63,6 @@ namespace F1RaceLiveDashboard.Services
       }
     }
 
-    // zwraca liste kierowcow z aktualnego stanu symulacji
-    public List<Driver> GetDrivers()
-    {
-      lock (_raceLock)
-      {
-        return _raceState.Drivers.ToList();
-      }
-    }   
-
     // start wyscigu zmienia status, przygotowuje kierowcow i uruchamia petle symulacji w tle
     public async Task StartRaceInBackground()
     {
@@ -167,7 +158,7 @@ namespace F1RaceLiveDashboard.Services
     {
       lock (_raceLock)
       {
-        _simulationSpeedMultiplier = ClampSpeed(multiplier);
+        _simulationSpeedMultiplier = multiplier;
         AddRaceEvent($"Simulation speed set to x{_simulationSpeedMultiplier:0.##}.", EventInfo);
       }
     }
@@ -237,22 +228,6 @@ namespace F1RaceLiveDashboard.Services
           && _raceState.Status != StatusFinished;
     }
 
-    // zabezpiecza przed zbyt mala albo zbyt duza predkoscia symulacji
-    private double ClampSpeed(double multiplier)
-    {
-      if (multiplier < 0.25)
-      {
-        return 0.25;
-      }
-
-      if (multiplier > 8.0)
-      {
-        return 8.0;
-      }
-
-      return multiplier;
-    }
-
     // przed startem kazdy aktywny kierowca dostaje przygotowane pierwsze okrazenie
     private void InitializeDriversForRace()
     {
@@ -305,7 +280,7 @@ namespace F1RaceLiveDashboard.Services
     // wykonuje jeden krok symulacji dla wszystkich kierowcow i aktualizuje klasyfikacje
     private void AdvanceRaceByTick()
     {
-      // czas wyscigu jest liczony na podstawie najdalej "cofnietego" aktywnego kierowcy
+      // czas wyscigu jest liczony na podstawie najdalej cofnietego aktywnego kierowcy
       _raceState.ElapsedSeconds = (int)Math.Floor(
           _raceState.Drivers
               .Where(d => !d.IsOut)
@@ -505,7 +480,7 @@ namespace F1RaceLiveDashboard.Services
       _raceState.Drivers = orderedDrivers;
     }
 
-    // dodaje event do logu wyscigu; opcjonalnie mozna podac wlasna sekunde symulacji
+    // dodaje event do logu wyscigu
     private void AddRaceEvent(string message, string type, int? simulationSecond = null)
     {
       _raceState.Events.Add(new RaceEvent
