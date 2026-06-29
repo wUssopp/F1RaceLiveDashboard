@@ -2,13 +2,15 @@
 
 namespace F1RaceLiveDashboard.Data
 {
-    public static class DbSeeder
+  // ta klasa wypelnia baze danymi startowymi przy uruchomieniu aplikacji
+  public static class DbSeeder
+  {
+    // seed dodaje zespoly i kierowcow tylko wtedy, gdy tabele sa puste
+    public static void Seed(AppDbContext context)
     {
-        public static void Seed(AppDbContext context)
-        {
-            if (!context.Teams.Any())
-            {
-                var teams = new List<TeamEntity>
+      if (!context.Teams.Any())
+      {
+        var teams = new List<TeamEntity>
                 {
                     new TeamEntity { Name = "Ferrari", IsTopTeam = true },
                     new TeamEntity { Name = "Mercedes", IsTopTeam = true },
@@ -24,25 +26,27 @@ namespace F1RaceLiveDashboard.Data
                     new TeamEntity { Name = "Cadillac", IsTopTeam = false }
                 };
 
-                context.Teams.AddRange(teams);
-                context.SaveChanges();
-            }
+        context.Teams.AddRange(teams);
+        context.SaveChanges();
+      }
 
-            if (!context.Drivers.Any())
-            {
-                var mercedes = context.Teams.First(t => t.Name == "Mercedes");
-                var ferrari = context.Teams.First(t => t.Name == "Ferrari");
-                var mclaren = context.Teams.First(t => t.Name == "McLaren");
-                var redBull = context.Teams.First(t => t.Name == "Red Bull Racing");
-                var alpine = context.Teams.First(t => t.Name == "Alpine");
-                var racingBulls = context.Teams.First(t => t.Name == "Racing Bulls");
-                var haas = context.Teams.First(t => t.Name == "Haas F1 Team");
-                var williams = context.Teams.First(t => t.Name == "Williams");
-                var audi = context.Teams.First(t => t.Name == "Audi");
-                var astonMartin = context.Teams.First(t => t.Name == "Aston Martin");
-                var cadillac = context.Teams.First(t => t.Name == "Cadillac");
+      if (!context.Drivers.Any())
+      {
+        // pobiera wczesniej zapisane zespoly, aby przypisac do nich kierowcow po id
+        var mercedes = context.Teams.First(t => t.Name == "Mercedes");
+        var ferrari = context.Teams.First(t => t.Name == "Ferrari");
+        var mclaren = context.Teams.First(t => t.Name == "McLaren");
+        var redBull = context.Teams.First(t => t.Name == "Red Bull Racing");
+        var alpine = context.Teams.First(t => t.Name == "Alpine");
+        var racingBulls = context.Teams.First(t => t.Name == "Racing Bulls");
+        var haas = context.Teams.First(t => t.Name == "Haas F1 Team");
+        var williams = context.Teams.First(t => t.Name == "Williams");
+        var audi = context.Teams.First(t => t.Name == "Audi");
+        var astonMartin = context.Teams.First(t => t.Name == "Aston Martin");
+        var cadillac = context.Teams.First(t => t.Name == "Cadillac");
 
-                var drivers = new List<DriverEntity>
+        // lista kierowcow startowych z przypisanym zespolem i pozycja startowa
+        var drivers = new List<DriverEntity>
                 {
                     new DriverEntity { Name = "George Russell", TeamEntityId = mercedes.Id, StartPosition = 1 },
                     new DriverEntity { Name = "Kimi Antonelli", TeamEntityId = mercedes.Id, StartPosition = 2 },
@@ -78,9 +82,9 @@ namespace F1RaceLiveDashboard.Data
                     new DriverEntity { Name = "Valtteri Bottas", TeamEntityId = cadillac.Id, StartPosition = 22 }
                 };
 
-                context.Drivers.AddRange(drivers);
-                context.SaveChanges();
-            }
-        }
+        context.Drivers.AddRange(drivers);
+        context.SaveChanges();
+      }
     }
+  }
 }

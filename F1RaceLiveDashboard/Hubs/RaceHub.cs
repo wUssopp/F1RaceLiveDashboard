@@ -2,7 +2,8 @@
 
 namespace F1RaceLiveDashboard.Hubs
 {
-    public class RaceHub : Hub
-    {
-    }
+  // pusty hub signalr, potrzebny do realtime
+  public class RaceHub : Hub
+  {
+  }
 }
