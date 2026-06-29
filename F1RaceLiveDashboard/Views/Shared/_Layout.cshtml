@@ -3,14 +3,17 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - F1RaceLiveDashboard</title>
+    <meta name="description" content="F1 race live dashboard with real-time simulation, SignalR updates, and race events." />
+    <title>@(ViewData["Title"] ?? "F1 Race Live Dashboard")</title>
 
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/F1RaceLiveDashboard.styles.css" asp-append-version="true" />
 </head>
 <body>
-    @RenderBody()
+    <main role="main">
+        @RenderBody()
+    </main>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

@@ -13,6 +13,12 @@ namespace F1RaceLiveDashboard.Controllers
         }
 
         [HttpGet]
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        [HttpGet]
         public IActionResult Drivers()
         {
             var raceState = _raceSimulationService.GetRaceState();
@@ -42,40 +48,58 @@ namespace F1RaceLiveDashboard.Controllers
             return Json(driver);
         }
 
-
         [HttpPost]
         public async Task<IActionResult> Start()
         {
             await _raceSimulationService.StartRaceInBackground();
-            return Ok(new { message = "Race started" });
+            return Message("Race started");
         }
 
         [HttpPost]
         public async Task<IActionResult> Pause()
         {
             await _raceSimulationService.PauseRaceAsync();
-            return Ok(new { message = "Race paused" });
+            return Message("Race paused");
         }
 
         [HttpPost]
         public async Task<IActionResult> Resume()
         {
             await _raceSimulationService.ResumeRaceAsync();
-            return Ok(new { message = "Race resumed" });
+            return Message("Race resumed");
         }
 
         [HttpPost]
         public async Task<IActionResult> Reset()
         {
             await _raceSimulationService.ResetRaceAsync();
-            return Ok(new { message = "Race reset" });
+            return Message("Race reset");
         }
 
         [HttpPost]
         public IActionResult SetSpeed(double multiplier)
         {
             _raceSimulationService.SetSimulationSpeed(multiplier);
-            return Ok(new { message = $"Simulation speed set to x{multiplier}" });
+            return Message($"Simulation speed set to x{multiplier}");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> IncreaseLaps()
+        {
+            await _raceSimulationService.ChangeTotalLapsAsync(1);
+            return Message("Lap count increased");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DecreaseLaps()
+        {
+            await _raceSimulationService.ChangeTotalLapsAsync(-1);
+            return Message("Lap count decreased");
+        }
+
+        private OkObjectResult Message(string message)
+        {
+            return Ok(new { message });
         }
     }
 }

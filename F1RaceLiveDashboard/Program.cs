@@ -5,39 +5,41 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite("Data Source=f1race.db"));
-builder.Services.AddSingleton<RaceSimulationService>(); // stan wyœcigu jako singleton
+// Services
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseSqlite("Data Source=f1race.db"));
+
+builder.Services.AddSingleton<RaceSimulationService>();
 builder.Services.AddSignalR();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
+// Database initialization
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+    using var dbContext = dbContextFactory.CreateDbContext();
+
     dbContext.Database.Migrate();
     DbSeeder.Seed(dbContext);
 }
 
-// Configure the HTTP request pipeline.
+// HTTP pipeline
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseRouting();
-
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
+    pattern: "{controller=Race}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 app.MapHub<RaceHub>("/raceHub");

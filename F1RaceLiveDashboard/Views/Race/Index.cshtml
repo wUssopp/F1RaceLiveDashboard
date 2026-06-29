@@ -1,0 +1,102 @@
+﻿@{
+    ViewData["Title"] = "F1 Race Live Dashboard";
+}
+
+<div class="dashboard-page">
+    <header class="dashboard-header">
+        <section class="dashboard-hero" aria-labelledby="dashboardTitle">
+            <h1 id="dashboardTitle">F1 Race Live Dashboard</h1>
+
+            <div class="race-controls" aria-label="Race controls">
+                <button type="button" id="startRaceButton" class="race-controls__button">Start</button>
+                <button type="button" id="pauseRaceButton" class="race-controls__button race-controls__button--secondary">Pause</button>
+                <button type="button" id="resumeRaceButton" class="race-controls__button race-controls__button--secondary">Resume</button>
+                <button type="button" id="resetRaceButton" class="race-controls__button race-controls__button--secondary">Reset</button>
+                <button type="button" id="speed1xButton" class="race-controls__button race-controls__button--secondary">Speed x1</button>
+                <button type="button" id="speed2xButton" class="race-controls__button race-controls__button--secondary">Speed x2</button>
+                <button type="button" id="speed4xButton" class="race-controls__button race-controls__button--secondary">Speed x4</button>
+                <button type="button" id="speed8xButton" class="race-controls__button race-controls__button--secondary">Speed x8</button>
+            </div>
+        </section>
+
+        <section class="summary-grid" aria-label="Race summary">
+            <div class="summary-card">
+                <span class="summary-card__label">Status</span>
+                <strong id="raceStatus">Loading...</strong>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-card__label">Race Time</span>
+                <strong id="raceTime">00:00</strong>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-card__label">Leader</span>
+                <strong id="leaderName">-</strong>
+            </div>
+
+            <div class="summary-card">
+                <span class="summary-card__label">Active Drivers</span>
+                <strong id="activeDriversCount">-</strong>
+            </div>
+
+            <div class="summary-card summary-card--laps">
+                <span class="summary-card__label">Total Laps</span>
+
+                <div class="laps-controls" aria-label="Lap controls">
+                    <button type="button" id="decreaseLapsButton" class="laps-button" aria-label="Decrease laps">-</button>
+                    <div id="totalLapsValue" class="laps-value">20</div>
+                    <button type="button" id="increaseLapsButton" class="laps-button" aria-label="Increase laps">+</button>
+                </div>
+            </div>
+        </section>
+    </header>
+
+    <main class="dashboard-grid">
+        <section class="dashboard-panel dashboard-panel--leaderboard" aria-labelledby="leaderboardTitle">
+            <div class="dashboard-panel__header">
+                <h2 id="leaderboardTitle">Leaderboard</h2>
+                <span class="dashboard-panel__note">Live classification</span>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="drivers-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Change</th>
+                            <th>Driver</th>
+                            <th>Team</th>
+                            <th>Lap</th>
+                            <th>Progress</th>
+                            <th>Best Lap</th>
+                            <th>Last Lap</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="driversTableBody">
+                        <tr>
+                            <td colspan="9">Loading drivers...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <aside class="dashboard-panel dashboard-panel--events" aria-labelledby="eventsTitle">
+            <div class="dashboard-panel__header">
+                <h2 id="eventsTitle">Race Events</h2>
+                <span class="dashboard-panel__note">Newest events at the top</span>
+            </div>
+
+            <div class="events-list" id="eventsBox">
+                <div class="events-list__item event-info">Loading events...</div>
+            </div>
+        </aside>
+    </main>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script src="~/js/race.js"></script>
+}

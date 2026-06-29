@@ -1,4 +1,5 @@
 ﻿let connection = null;
+let currentTotalLaps = 0;
 
 document.addEventListener("DOMContentLoaded", async () => {
     await startSignalRConnection();
@@ -13,11 +14,7 @@ async function startSignalRConnection() {
             .withAutomaticReconnect()
             .build();
 
-        connection.on("RaceStateUpdated", (data) => {
-            renderRaceSummary(data);
-            renderDriversTable(data.drivers);
-            renderEvents(data.events);
-        });
+        connection.on("RaceStateUpdated", renderRaceState);
 
         await connection.start();
         console.log("SignalR connected");
@@ -35,191 +32,146 @@ async function loadRaceData() {
         }
 
         const data = await response.json();
-
-        renderRaceSummary(data);
-        renderDriversTable(data.drivers);
-        renderEvents(data.events);
+        renderRaceState(data);
     } catch (error) {
         console.error("Error while loading race data:", error);
+        renderLoadErrorState();
+    }
+}
 
-        document.getElementById("driversTableBody").innerHTML =
-            `<tr><td colspan="7">Failed to load drivers data.</td></tr>`;
+function renderRaceState(data) {
+    renderRaceSummary(data);
+    renderDriversTable(data.drivers);
+    renderEvents(data.events);
+}
+
+function renderLoadErrorState() {
+    const driversTableBody = document.getElementById("driversTableBody");
+    const eventsBox = document.getElementById("eventsBox");
+
+    if (driversTableBody) {
+        driversTableBody.innerHTML = `<tr><td colspan="9">Failed to load drivers data.</td></tr>`;
+    }
+
+    if (eventsBox) {
+        eventsBox.innerHTML = `<div class="event-item event-danger">Failed to load events.</div>`;
     }
 }
 
 function renderRaceSummary(data) {
-    document.getElementById("raceStatus").textContent = data.status;
-    document.getElementById("raceTime").textContent = formatRaceTime(data.elapsedSeconds ?? 0);
+    currentTotalLaps = data.totalLaps ?? 0;
+
+    setText("raceStatus", data.status ?? "-");
+    setText("raceTime", formatRaceTime(data.elapsedSeconds ?? 0));
+    setText("totalLapsValue", currentTotalLaps);
+
+    const canEditLaps = data.status === "Ready";
+    setButtonDisabled("increaseLapsButton", !canEditLaps);
+    setButtonDisabled("decreaseLapsButton", !canEditLaps);
 
     if (data.drivers && data.drivers.length > 0) {
-        document.getElementById("leaderName").textContent = data.drivers[0].name;
-
-        const activeDrivers = data.drivers.filter(driver => !driver.isOut).length;
-        document.getElementById("activeDriversCount").textContent = activeDrivers;
-    } else {
-        document.getElementById("leaderName").textContent = "-";
-        document.getElementById("activeDriversCount").textContent = "-";
+        setText("leaderName", data.drivers[0].name);
+        setText("activeDriversCount", data.drivers.filter(driver => !driver.isOut).length);
+        return;
     }
+
+    setText("leaderName", "-");
+    setText("activeDriversCount", "-");
 }
 
 function renderDriversTable(drivers) {
     const tableBody = document.getElementById("driversTableBody");
+
+    if (!tableBody) {
+        return;
+    }
 
     if (!drivers || drivers.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="9">No drivers found.</td></tr>`;
         return;
     }
 
-    tableBody.innerHTML = drivers.map(driver => `
-        <tr data-driver-id="${driver.id}" class="driver-row">
-            <td>${driver.position}</td>
-            <td class="${getPositionChangeClass(driver.positionChange)}">${formatPositionChange(driver.positionChange)}</td>
-            <td>${driver.name}</td>
-            <td>${driver.team}</td>
-            <td>${driver.currentLap}</td>
-            <td>
-                <div class="lap-progress-cell">
-                    <div class="lap-progress-bar">
-                        <div class="lap-progress-fill" style="width: ${Math.floor(driver.lapProgressPercent ?? 0)}%"></div>
-                    </div>
-                    <span class="lap-progress-text">${Math.floor(driver.lapProgressPercent ?? 0)}%</span>
-                </div>
-            </td>
-            <td>${formatLapTime(driver.bestLapTime)}</td>
-            <td>${formatLapTime(driver.lastLapTime)}</td>
-            <td>${driver.status}</td>
-        </tr>
-    `).join("");
+    tableBody.innerHTML = drivers.map(driver => {
+        const progress = Math.floor(driver.lapProgressPercent ?? 0);
 
-    addDriverRowClickEvents();
+        return `
+            <tr class="driver-row">
+                <td>${driver.position}</td>
+                <td class="${getPositionChangeClass(driver.positionChange)}">${formatPositionChange(driver.positionChange)}</td>
+                <td>${driver.name}</td>
+                <td>${driver.team}</td>
+                <td>${driver.currentLap}/${currentTotalLaps}</td>
+                <td>
+                    <div class="lap-progress-cell">
+                        <div class="lap-progress-bar">
+                            <div class="lap-progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <span class="lap-progress-text">${progress}%</span>
+                    </div>
+                </td>
+                <td>${formatLapTime(driver.bestLapTime)}</td>
+                <td>${formatLapTime(driver.lastLapTime)}</td>
+                <td>${driver.status}</td>
+            </tr>
+        `;
+    }).join("");
 }
 
 function renderEvents(events) {
     const eventsBox = document.getElementById("eventsBox");
 
-    if (!events || events.length === 0) {
-        eventsBox.innerHTML = `<div class="event-item">No events yet.</div>`;
+    if (!eventsBox) {
         return;
     }
 
-    const sortedEvents = [...events].reverse();
+    if (!events || events.length === 0) {
+        eventsBox.innerHTML = `<div class="events-list__item event-info">No events yet.</div>`;
+        return;
+    }
 
-    eventsBox.innerHTML = sortedEvents.map(raceEvent => `
-        <div class="event-item">${raceEvent.message}</div>
-    `).join("");
+    eventsBox.innerHTML = [...events]
+        .reverse()
+        .map(raceEvent => `
+            <div class="events-list__item ${getEventClass(raceEvent)}">
+                <span class="events-list__time">${formatEventSimulationTime(raceEvent)}</span>
+                <span class="events-list__message">${raceEvent.message}</span>
+            </div>
+        `)
+        .join("");
 }
 
-function addDriverRowClickEvents() {
-    const rows = document.querySelectorAll(".driver-row");
+function setupButtons() {
+    const buttonActions = [
+        ["startRaceButton", "/Race/Start"],
+        ["pauseRaceButton", "/Race/Pause"],
+        ["resumeRaceButton", "/Race/Resume"],
+        ["resetRaceButton", "/Race/Reset"],
+        ["speed1xButton", "/Race/SetSpeed?multiplier=1"],
+        ["speed2xButton", "/Race/SetSpeed?multiplier=2"],
+        ["speed4xButton", "/Race/SetSpeed?multiplier=4"],
+        ["speed8xButton", "/Race/SetSpeed?multiplier=8"],
+        ["increaseLapsButton", "/Race/IncreaseLaps"],
+        ["decreaseLapsButton", "/Race/DecreaseLaps"]
+    ];
 
-    rows.forEach(row => {
-        row.addEventListener("click", async () => {
-            const driverId = row.getAttribute("data-driver-id");
-            await loadDriverDetails(driverId);
+    buttonActions.forEach(([elementId, url]) => {
+        const button = document.getElementById(elementId);
+
+        if (!button) {
+            return;
+        }
+
+        button.addEventListener("click", async () => {
+            await postAction(url);
         });
     });
 }
 
-async function loadDriverDetails(driverId) {
-    try {
-        const response = await fetch(`/Race/DriverDetails?id=${driverId}`);
-
-        if (!response.ok) {
-            throw new Error("Failed to load driver details");
-        }
-
-        const driver = await response.json();
-
-        renderDriverDetails(driver);
-    } catch (error) {
-        console.error("Error while loading driver details:", error);
-    }
-}
-
-function renderDriverDetails(driver) {
-    const detailsBox = document.getElementById("driverDetailsBox");
-
-    detailsBox.innerHTML = `
-        <p><strong>Name:</strong> ${driver.name}</p>
-        <p><strong>Team:</strong> ${driver.team}</p>
-        <p><strong>Position:</strong> ${driver.position}</p>
-        <p><strong>Status:</strong> ${driver.status}</p>
-        <p><strong>Best Lap:</strong> ${formatLapTime(driver.bestLapTime)}</p>
-    `;
-}
-
-function formatLapTime(value) {
-    if (!value || value === 0) {
-        return "-";
-    }
-
-    return value.toFixed(3) + " s";
-}
-
-function setupButtons() {
-    const startButton = document.getElementById("startRaceButton");
-    const pauseButton = document.getElementById("pauseRaceButton");
-    const resumeButton = document.getElementById("resumeRaceButton");
-    const resetButton = document.getElementById("resetRaceButton");
-    const speed1xButton = document.getElementById("speed1xButton");
-    const speed2xButton = document.getElementById("speed2xButton");
-    const speed4xButton = document.getElementById("speed4xButton");
-    const speed8xButton = document.getElementById("speed8xButton");
-
-    if (startButton) {
-        startButton.addEventListener("click", async () => {
-            await postAction("/Race/Start");
-        });
-    }
-
-    if (pauseButton) {
-        pauseButton.addEventListener("click", async () => {
-            await postAction("/Race/Pause");
-        });
-    }
-
-    if (resumeButton) {
-        resumeButton.addEventListener("click", async () => {
-            await postAction("/Race/Resume");
-        });
-    }
-
-    if (resetButton) {
-        resetButton.addEventListener("click", async () => {
-            await postAction("/Race/Reset");
-        });
-    }
-
-    if (speed1xButton) {
-        speed1xButton.addEventListener("click", async () => {
-            await postAction("/Race/SetSpeed?multiplier=1");
-        });
-    }
-
-    if (speed2xButton) {
-        speed2xButton.addEventListener("click", async () => {
-            await postAction("/Race/SetSpeed?multiplier=2");
-        });
-    }
-
-    if (speed4xButton) {
-        speed4xButton.addEventListener("click", async () => {
-            await postAction("/Race/SetSpeed?multiplier=4");
-        });
-    }
-
-    if (speed8xButton) {
-        speed8xButton.addEventListener("click", async () => {
-            await postAction("/Race/SetSpeed?multiplier=8");
-        });
-    }
-}
-
 async function postAction(url) {
     try {
-        const response = await fetch(url, {
-            method: "POST"
-        });
+        const response = await fetch(url, { method: "POST" });
+
+        console.log(url, response.status);
 
         if (!response.ok) {
             throw new Error(`Request failed for ${url}`);
@@ -229,56 +181,46 @@ async function postAction(url) {
     }
 }
 
+function getEventClass(raceEvent) {
+    const eventType = (raceEvent.type || "").toLowerCase();
+    const message = (raceEvent.message || "").toLowerCase();
+
+    if (eventType === "pit" || message.includes("pit")) {
+        return "event-pit";
+    }
+
+    if (eventType === "finish" || message.includes("finished")) {
+        return "event-finish";
+    }
+
+    if (eventType === "danger" || message.includes("out")) {
+        return "event-danger";
+    }
+
+    return "event-info";
+}
+
+function formatEventSimulationTime(raceEvent) {
+    if (raceEvent.simulationSecond !== undefined && raceEvent.simulationSecond !== null) {
+        return formatRaceTime(raceEvent.simulationSecond);
+    }
+
+    return "--:--";
+}
+
+function formatLapTime(value) {
+    if (!value || value === 0) {
+        return "-";
+    }
+
+    return `${value.toFixed(3)} s`;
+}
+
 function formatRaceTime(totalSeconds) {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
 
-    const minutesText = String(minutes).padStart(2, "0");
-    const secondsText = String(seconds).padStart(2, "0");
-
-    return `${minutesText}:${secondsText}`;
-}
-
-function getDriverLapProgressPercent(driver) {
-    const raceTimeElement = document.getElementById("raceTime");
-
-    if (!raceTimeElement) {
-        return 0;
-    }
-
-    const raceTimeText = raceTimeElement.textContent ?? "00:00";
-    const totalSeconds = parseRaceTimeToSeconds(raceTimeText);
-
-    if (driver.status === "Finished") {
-        return 100;
-    }
-
-    if (driver.status === "Out") {
-        return 0;
-    }
-
-    const lapDurationSeconds = 5;
-    const progressInCurrentLap = totalSeconds % lapDurationSeconds;
-    const progressPercent = Math.floor((progressInCurrentLap / lapDurationSeconds) * 100);
-
-    return progressPercent;
-}
-
-function parseRaceTimeToSeconds(timeText) {
-    const parts = timeText.split(":");
-
-    if (parts.length !== 2) {
-        return 0;
-    }
-
-    const minutes = parseInt(parts[0], 10);
-    const seconds = parseInt(parts[1], 10);
-
-    if (isNaN(minutes) || isNaN(seconds)) {
-        return 0;
-    }
-
-    return (minutes * 60) + seconds;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function formatPositionChange(positionChange) {
@@ -303,4 +245,20 @@ function getPositionChangeClass(positionChange) {
     }
 
     return "position-flat";
+}
+
+function setText(elementId, value) {
+    const element = document.getElementById(elementId);
+
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function setButtonDisabled(elementId, disabled) {
+    const button = document.getElementById(elementId);
+
+    if (button) {
+        button.disabled = disabled;
+    }
 }

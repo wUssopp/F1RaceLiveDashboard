@@ -8,6 +8,8 @@
 
         public string Team { get; set; } = "";
 
+        public bool IsTopTeam { get; set; }
+
         public int Position { get; set; }
 
         public int StartPosition { get; set; }
@@ -31,7 +33,9 @@
         public string Status { get; set; } = "Ready";
 
         public bool IsOut { get; set; }
+
         public int PitStopCount { get; set; }
+
         public int NextPitLap { get; set; }
     }
 }
