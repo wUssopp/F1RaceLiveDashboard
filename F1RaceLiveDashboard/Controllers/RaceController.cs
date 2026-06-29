@@ -18,7 +18,6 @@ namespace F1RaceLiveDashboard.Controllers
     }
 
     // zwraca pelny stan wyscigu do frontendu jako json
-    // to jest glowny endpoint pod ajax/fetch
     [HttpGet]
     public IActionResult Drivers()
     {
@@ -34,21 +33,6 @@ namespace F1RaceLiveDashboard.Controllers
         drivers = raceState.Drivers,
         events = raceState.Events
       });
-    }
-
-    // zwraca dane jednego kierowcy po id
-    // jesli kierowcy nie ma, zwraca 404
-    [HttpGet]
-    public IActionResult DriverDetails(int id)
-    {
-      var driver = _raceSimulationService.GetDriverById(id);
-
-      if (driver == null)
-      {
-        return NotFound(new { message = "Driver not found" });
-      }
-
-      return Json(driver);
     }
 
     // uruchamia symulacje wyscigu w serwisie

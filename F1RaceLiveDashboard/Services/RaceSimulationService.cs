@@ -12,7 +12,7 @@ namespace F1RaceLiveDashboard.Services
     // jeden tick symulacji trwa 0.2 sekundy logiki wyscigu
     private const double TickSeconds = 0.2;
 
-    // stale statusow zamiast "magic strings" w wielu miejscach
+    // stale statusow zamiast 
     private const string StatusReady = "Ready";
     private const string StatusRunning = "Running";
     private const string StatusPaused = "Paused";
@@ -27,13 +27,12 @@ namespace F1RaceLiveDashboard.Services
     private const string EventPit = "pit";
 
     // lock zabezpiecza wspolny stan przed jednoczesnym dostepem z wielu watkow
-    // to jest jedno z kluczowych miejsc spelniajacych wymaganie synchronizacji
     private readonly object _raceLock = new();
 
     // hubcontext pozwala wysylac aktualizacje signalr do wszystkich klientow
     private readonly IHubContext<RaceHub> _hubContext;
 
-    // fabryka dbcontext pozwala bezpiecznie tworzyc kontekst bazy wtedy, gdy jest potrzebny
+    // dbcontext pozwala bezpiecznie tworzyc kontekst bazy wtedy, gdy jest potrzebny
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
 
     // random sluzy do losowych czasow okrazen i zdarzen w symulacji
@@ -71,16 +70,7 @@ namespace F1RaceLiveDashboard.Services
       {
         return _raceState.Drivers.ToList();
       }
-    }
-
-    // zwraca jednego kierowce po id
-    public Driver? GetDriverById(int id)
-    {
-      lock (_raceLock)
-      {
-        return _raceState.Drivers.FirstOrDefault(d => d.Id == id);
-      }
-    }
+    }   
 
     // start wyscigu zmienia status, przygotowuje kierowcow i uruchamia petle symulacji w tle
     public async Task StartRaceInBackground()
@@ -158,15 +148,6 @@ namespace F1RaceLiveDashboard.Services
       }
     }
 
-    // ogranicza predkosc do dozwolonego zakresu i zapisuje nowy mnoznik
-    public void SetSimulationSpeed(double multiplier)
-    {
-      lock (_raceLock)
-      {
-        _simulationSpeedMultiplier = ClampSpeed(multiplier);
-        AddRaceEvent($"Simulation speed set to x{_simulationSpeedMultiplier:0.##}.", EventInfo);
-      }
-    }
 
     // reset usuwa biezacy stan symulacji i tworzy wszystko od nowa z bazy
     public async Task ResetRaceAsync()
@@ -179,6 +160,16 @@ namespace F1RaceLiveDashboard.Services
       }
 
       await BroadcastRaceStateAsync();
+    }
+
+    // ogranicza predkosc do dozwolonego zakresu i zapisuje nowy mnoznik
+    public void SetSimulationSpeed(double multiplier)
+    {
+      lock (_raceLock)
+      {
+        _simulationSpeedMultiplier = ClampSpeed(multiplier);
+        AddRaceEvent($"Simulation speed set to x{_simulationSpeedMultiplier:0.##}.", EventInfo);
+      }
     }
 
     // liczbe okrazen mozna zmieniac tylko przed startem wyscigu
@@ -203,7 +194,6 @@ namespace F1RaceLiveDashboard.Services
     }
 
     // wysyla pelny stan wyscigu do wszystkich podlaczonych klientow
-    // to jest glowne miejsce spelniajace wymaganie signalr / realtime
     public async Task BroadcastRaceStateAsync()
     {
       RaceState stateCopy;
